@@ -264,7 +264,7 @@ function addCommands() {
             SlashCommandArgument.fromProps({
                 description: 'Number of messages to advance by. Must be a positive integer.',
                 typeList: ARGUMENT_TYPE.NUMBER,
-                isRequired: true,
+                isRequired: false,
                 acceptsMultiple: false,
             }),
         ],
