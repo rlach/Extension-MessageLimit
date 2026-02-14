@@ -7,6 +7,7 @@ Limit the maximum number of visible chat messages to be sent per prompt. Does no
 1. Install the extension via the URL: `https://github.com/SillyTavern/Extension-MessageLimit`
 2. Enable the extension in the extension settings menu. Set the message limit to your desired value (default: 10).
 3. If you need to apply the message limit to background/quiet prompts (e.g. extensions, slash commands, etc.), enable the "Apply to background prompts" setting.
+4. Optionally, adjust the "Messages to advance by" setting to control how many messages are removed at a time when trimming. Higher values keep the oldest messages constant longer, which helps with context caching (default: 1).
 
 ## Slash Commands
 
@@ -32,6 +33,18 @@ Set the message limit. Just returns the current limit if no arguments are provid
 
 ```stscript
 /ml-limit | /echo
+```
+
+### `/ml-advance`
+
+Set the number of messages to advance by when trimming chat. Just returns the current advance count if no arguments are provided.
+
+```stscript
+/ml-advance 5
+```
+
+```stscript
+/ml-advance | /echo
 ```
 
 ### `/ml-quiet`

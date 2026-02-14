@@ -15,11 +15,13 @@ const settingsKey = 'messageLimit';
  * @property {boolean} enabled - Whether the extension is enabled.
  * @property {boolean} quietPrompts - Whether to apply the message limit to quiet prompts.
  * @property {number} limit - Maximum number of messages to send.
+ * @property {number} advanceCount - Number of messages to advance by when trimming chat.
  */
 const defaultSettings = Object.freeze({
     enabled: false,
     quietPrompts: false,
     limit: 10,
+    advanceCount: 1,
 });
 
 /**
@@ -39,7 +41,8 @@ globalThis.MessageLimit_interceptGeneration = function (chat, _contextSize, _abo
         return;
     }
     while (chat.length > settings.limit) {
-        chat.shift();
+        const messagesToRemove = Math.min(settings.advanceCount, chat.length - settings.limit);
+        chat.splice(0, messagesToRemove);
     }
 };
 
@@ -126,6 +129,25 @@ function addSettings() {
         context.saveSettingsDebounced();
     });
     inlineDrawerContent.append(parentSelectLabel, limitInput);
+
+    // Advance Count
+    const advanceCountLabel = document.createElement('label');
+    advanceCountLabel.htmlFor = 'messageLimitAdvanceCount';
+    advanceCountLabel.textContent = context.t`Messages to advance by`;
+    const advanceCountInput = document.createElement('input');
+    advanceCountInput.id = 'messageLimitAdvanceCount';
+    advanceCountInput.type = 'number';
+    advanceCountInput.min = String(1);
+    advanceCountInput.max = String(100000);
+    advanceCountInput.step = String(1);
+    advanceCountInput.value = String(settings.advanceCount);
+    advanceCountInput.classList.add('text_pole');
+    advanceCountInput.title = context.t`Number of messages to remove at a time when trimming chat. Higher values keep the oldest messages constant longer, which helps with context caching.`;
+    advanceCountInput.addEventListener('input', () => {
+        settings.advanceCount = Math.max(1, Math.round(Number(advanceCountInput.value)));
+        context.saveSettingsDebounced();
+    });
+    inlineDrawerContent.append(advanceCountLabel, advanceCountInput);
 }
 
 function addCommands() {
@@ -231,6 +253,39 @@ function addCommands() {
             }
 
             return String(context.extensionSettings[settingsKey].limit);
+        },
+    }));
+
+    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
+        name: 'ml-advance',
+        helpString: 'Set the number of messages to advance by when trimming chat. If no argument is provided, return the current advance count.',
+        returns: 'number',
+        unnamedArgumentList: [
+            SlashCommandArgument.fromProps({
+                description: 'Number of messages to advance by. Must be a positive integer.',
+                typeList: ARGUMENT_TYPE.NUMBER,
+                isRequired: true,
+                acceptsMultiple: false,
+            }),
+        ],
+        callback: (_, advanceCount) => {
+            if (advanceCount && typeof advanceCount === 'string') {
+                if (isNaN(Number(advanceCount)) || !isFinite(Number(advanceCount))) {
+                    throw new Error('Advance count must be a finite number.');
+                }
+
+                context.extensionSettings[settingsKey].advanceCount = Math.max(1, Math.round(Number(advanceCount)));
+
+                const input = document.getElementById('messageLimitAdvanceCount');
+                if (input instanceof HTMLInputElement) {
+                    input.value = String(context.extensionSettings[settingsKey].advanceCount);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                context.saveSettingsDebounced();
+            }
+
+            return String(context.extensionSettings[settingsKey].advanceCount);
         },
     }));
 }
