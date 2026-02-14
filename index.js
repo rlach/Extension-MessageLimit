@@ -41,7 +41,10 @@ globalThis.MessageLimit_interceptGeneration = function (chat, _contextSize, _abo
         return;
     }
     while (chat.length > settings.limit) {
-        const messagesToRemove = Math.min(settings.advanceCount, chat.length - settings.limit);
+        // Guard: cap advanceCount at (limit - 1) to ensure at least 1 message remains,
+        // but ensure we advance by at least 1 to avoid infinite loops
+        const effectiveAdvanceCount = Math.min(settings.advanceCount, Math.max(1, settings.limit - 1));
+        const messagesToRemove = Math.min(effectiveAdvanceCount, chat.length - settings.limit);
         chat.splice(0, messagesToRemove);
     }
 };
